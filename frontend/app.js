@@ -1,206 +1,143 @@
-// ===== CONFIG =====
 const API_BASE = "https://history-inside-api.danielyoon.workers.dev";
 
-// ===== DOM =====
+/* ---------- DOM ---------- */
 const scriptInput = document.getElementById("scriptInput");
-
 const btnValidate = document.getElementById("btnValidate");
 const btnSplit = document.getElementById("btnSplit");
+const validateResult = document.getElementById("validateResult");
+const cutsGrid = document.getElementById("cutsGrid");
 
-const summary = document.getElementById("validationSummary");
-const errorList = document.getElementById("validationErrors");
-const warningList = document.getElementById("validationWarnings");
+/* YouTube Package */
+const ytTitles = document.getElementById("ytTitles");
+const ytDescription = document.getElementById("ytDescription");
+const ytTags = document.getElementById("ytTags");
+const ytComment = document.getElementById("ytComment");
+const ytThumbnailText = document.getElementById("ytThumbnailText");
+const ytThumbnailImg = document.getElementById("ytThumbnailImg");
+const ytShorts = document.getElementById("ytShorts");
 
-const cutsTbody = document.getElementById("cutsTbody");
+/* ---------- Utils ---------- */
+const pad2 = n => String(n).padStart(2, "0");
 
-const btnDownloadCuts = document.getElementById("btnDownloadCuts");
-const btnDownloadTTS = document.getElementById("btnDownloadTTS");
-const btnDownloadPrompts = document.getElementById("btnDownloadPrompts");
-
-const engineDot = document.getElementById("engineDot");
-const engineStatus = document.getElementById("engineStatus");
-
-// ===== STATE =====
-let lastCuts = null;
-let lastTTS = null;
-let lastPrompts = null;
-
-// ===== INIT =====
-checkEngine();
-
-// ===== ENGINE STATUS =====
-async function checkEngine() {
-  try {
-    const res = await fetch(API_BASE, { method: "GET" });
-    if (res.ok) {
-      engineDot.style.background = "#4cd964";
-      engineStatus.textContent = "ENGINE: ONLINE";
-    } else {
-      throw new Error();
-    }
-  } catch {
-    engineDot.style.background = "#ff6b6b";
-    engineStatus.textContent = "ENGINE: OFFLINE";
-  }
+function assetPath(kind, cutId) {
+  const id = pad2(cutId);
+  if (kind === "audio") return `./audio/CUT${id}.wav`;
+  if (kind === "srt") return `./srt/CUT${id}.srt`;
+  if (kind === "prompt") return `./prompts/CUT${id}.prompt.txt`;
+  return "#";
 }
 
-// ===== HELPERS =====
-function clearValidationUI() {
-  errorList.innerHTML = "<li>없음</li>";
-  warningList.innerHTML = "<li>없음</li>";
-}
-
-function setSummary(text, type) {
-  summary.textContent = text;
-  summary.className = `summary summary--${type}`;
-}
-
-function renderList(el, items) {
-  if (!items.length) {
-    el.innerHTML = "<li>없음</li>";
-    el.classList.add("list--empty");
-    return;
-  }
-  el.classList.remove("list--empty");
-  el.innerHTML = items.map(i => `<li>${i}</li>`).join("");
-}
-
-function download(filename, content) {
-  const blob = new Blob([content], { type: "application/json;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ===== VALIDATE =====
-btnValidate.addEventListener("click", async () => {
+/* ---------- Validate ---------- */
+btnValidate.onclick = async () => {
   const text = scriptInput.value.trim();
-  if (!text) return;
+  if (!text) return alert("대본이 비어 있습니다.");
 
-  setSummary("검증 중…", "idle");
-  clearValidationUI();
+  validateResult.style.display = "block";
+  validateResult.textContent = "검증 중…";
 
-  try {
-    const res = await fetch(`${API_BASE}/validate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text })
-    });
-
-    const data = await res.json();
-
-    renderList(errorList, data.errors || []);
-    renderList(warningList, data.warnings || []);
-
-    if (data.errors && data.errors.length) {
-      setSummary("❌ FAIL", "fail");
-      btnSplit.disabled = true;
-    } else {
-      setSummary(
-        data.warnings && data.warnings.length
-          ? "⚠️ PASS with WARNINGS"
-          : "✅ PASS",
-        "pass"
-      );
-      btnSplit.disabled = false;
-    }
-  } catch (e) {
-    setSummary("❌ ENGINE ERROR", "fail");
-  }
-});
-
-// ===== SPLIT =====
-btnSplit.addEventListener("click", async () => {
-  const text = scriptInput.value.trim();
-  if (!text) return;
-
-  cutsTbody.innerHTML = `
-    <tr class="row--empty">
-      <td colspan="5">컷 분할 중…</td>
-    </tr>
-  `;
-
-  try {
-    // 1. 컷 분할
-    const res = await fetch(`${API_BASE}/split`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text })
-    });
-    const cutData = await res.json();
-    lastCuts = cutData;
-
-    // 2. EdgeTTS 텍스트
-    const ttsRes = await fetch(`${API_BASE}/tts-text`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cuts: cutData.cuts })
-    });
-    lastTTS = await ttsRes.json();
-
-    // 3. 이미지 프롬프트
-    const pRes = await fetch(`${API_BASE}/prompt`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cuts: cutData.cuts })
-    });
-    lastPrompts = await pRes.json();
-
-    renderCuts(cutData.cuts);
-
-    btnDownloadCuts.disabled = false;
-    btnDownloadTTS.disabled = false;
-    btnDownloadPrompts.disabled = false;
-
-  } catch {
-    cutsTbody.innerHTML = `
-      <tr class="row--empty">
-        <td colspan="5">❌ 컷 분할 실패</td>
-      </tr>
-    `;
-  }
-});
-
-// ===== RENDER CUTS =====
-function renderCuts(cuts) {
-  cutsTbody.innerHTML = "";
-
-  cuts.forEach(cut => {
-    const len = cut.text.length;
-    const tone =
-      cut.errors && cut.errors.length
-        ? "❌"
-        : cut.warnings && cut.warnings.length
-        ? "⚠️"
-        : "OK";
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>CUT ${cut.id}</td>
-      <td>${cut.type}</td>
-      <td>${len}</td>
-      <td>${tone}</td>
-      <td>${cut.text.slice(0, 80)}…</td>
-    `;
-    cutsTbody.appendChild(tr);
+  const res = await fetch(`${API_BASE}/validate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text })
   });
+
+  const data = await res.json();
+  validateResult.textContent = JSON.stringify(data, null, 2);
+};
+
+/* ---------- Split ---------- */
+btnSplit.onclick = async () => {
+  const text = scriptInput.value.trim();
+  if (!text) return alert("대본이 비어 있습니다.");
+
+  cutsGrid.innerHTML = `<div class="cutsEmpty">컷 분리 중…</div>`;
+
+  const res = await fetch(`${API_BASE}/split`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text })
+  });
+
+  const data = await res.json();
+  renderCutCards(data.cuts);
+
+  // 👉 컷 분리 후 메타데이터 자동 요청
+  await loadYouTubePackage(data.cuts);
+};
+
+/* ---------- CUT Cards ---------- */
+function renderCutCards(cuts) {
+  cutsGrid.innerHTML = cuts.map(cut => {
+    const id = pad2(cut.id);
+    return `
+      <div class="cutCard">
+        <div class="cutCard__top">
+          <span class="badge">CUT ${id}</span>
+          <span class="badge">${cut.type}</span>
+        </div>
+
+        <audio controls preload="none"
+          src="${assetPath("audio", cut.id)}"></audio>
+
+        <div class="cutActions">
+          <button onclick="openText('Subtitles','${assetPath("srt", cut.id)}')">
+            📝 자막
+          </button>
+          <button onclick="openText('Image Prompt','${assetPath("prompt", cut.id)}')">
+            🖼️ 이미지 프롬프트
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
-// ===== DOWNLOADS =====
-btnDownloadCuts.addEventListener("click", () => {
-  if (!lastCuts) return;
-  download("cuts.json", JSON.stringify(lastCuts, null, 2));
-});
+/* ---------- YouTube Package ---------- */
+async function loadYouTubePackage(cuts) {
+  const res = await fetch(`${API_BASE}/metadata`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cuts })
+  });
 
-btnDownloadTTS.addEventListener("click", () => {
-  if (!lastTTS) return;
-  download("edge_tts_text.json", JSON.stringify(lastTTS, null, 2));
-});
+  if (!res.ok) return;
 
-btnDownloadPrompts.addEventListener("click", () => {
-  if (!lastPrompts) return;
-  download("image_prompts.json", JSON.stringify(lastPrompts, null, 2));
-});
+  const meta = await res.json();
+
+  // Titles
+  ytTitles.innerHTML = meta.titles.map((t, i) =>
+    `<label><input type="radio" name="title" ${i===0?"checked":""}> ${t}</label><br>`
+  ).join("");
+
+  ytDescription.textContent = meta.description;
+  ytComment.textContent = meta.fixed_comment;
+  ytThumbnailText.textContent = meta.thumbnail_text;
+  ytThumbnailImg.src = "./thumbnails/thumbnail.png";
+  ytShorts.textContent = meta.shorts_script || "Shorts 대본 없음";
+
+  ytTags.innerHTML = meta.tags.map(t =>
+    `<span class="tag">${t}</span>`
+  ).join("");
+}
+
+/* ---------- Modal ---------- */
+const modal = document.getElementById("modal");
+const modalTitle = document.getElementById("modalTitle");
+const modalBody = document.getElementById("modalBody");
+const modalClose = document.getElementById("modalClose");
+
+function openText(title, src) {
+  modalTitle.textContent = title;
+  modalBody.textContent = "불러오는 중…";
+  modal.classList.remove("hidden");
+
+  fetch(src)
+    .then(r => r.text())
+    .then(t => modalBody.textContent = t)
+    .catch(() => modalBody.textContent = "파일을 찾을 수 없습니다.");
+}
+
+modalClose.onclick = () => modal.classList.add("hidden");
+modal.onclick = e => {
+  if (e.target === modal) modal.classList.add("hidden");
+};
