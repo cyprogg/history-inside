@@ -1,2 +1,126 @@
 <button id="testBtn">API 테스트</button>
 <pre id="output"></pre>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>History Inside Studio</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__left">
+      <h1 class="brand">History Inside Studio</h1>
+      <p class="subtitle">대본 → 검증 → 컷 분할 → 산출물 다운로드</p>
+    </div>
+
+    <div class="topbar__right">
+      <div class="status">
+        <span class="status__dot" id="engineDot"></span>
+        <span class="status__text" id="engineStatus">ENGINE: UNKNOWN</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- ① Script Input -->
+    <section class="card">
+      <h2 class="card__title">① Script Input</h2>
+      <p class="card__desc">
+        최종 대본을 붙여 넣으세요. (업로드는 수동, 제작은 자동)
+      </p>
+
+      <textarea id="scriptInput" class="textarea" rows="14"
+        placeholder="여기에 최종 대본을 붙여 넣으세요.&#10;&#10;권장: 문단(빈 줄) 단위로 구분하면 컷 분할이 안정적입니다."></textarea>
+
+      <div class="actions">
+        <button id="btnValidate" class="btn btn--primary">Validate Script</button>
+        <button id="btnSplit" class="btn" disabled>Split to Cuts</button>
+      </div>
+
+      <div class="hint">
+        <span class="hint__label">TIP</span>
+        <span class="hint__text">검증 PASS 후에만 컷 분할 버튼이 활성화됩니다.</span>
+      </div>
+    </section>
+
+    <!-- ② Validation Result -->
+    <section class="card">
+      <h2 class="card__title">② Validation Result</h2>
+
+      <div id="validationSummary" class="summary summary--idle">
+        아직 실행되지 않았습니다.
+      </div>
+
+      <div class="grid2">
+        <div>
+          <h3 class="subhead">Errors</h3>
+          <ul id="validationErrors" class="list list--empty">
+            <li>없음</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="subhead">Warnings</h3>
+          <ul id="validationWarnings" class="list list--empty">
+            <li>없음</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ③ Cut Structure Preview -->
+    <section class="card">
+      <h2 class="card__title">③ Cut Structure Preview</h2>
+      <p class="card__desc">
+        컷별 타입/길이/톤 경고를 확인하세요. (여기서 사람이 최종 판단)
+      </p>
+
+      <div class="tableWrap">
+        <table class="table" aria-label="cuts table">
+          <thead>
+            <tr>
+              <th style="width: 88px;">CUT</th>
+              <th style="width: 120px;">Type</th>
+              <th style="width: 120px;">Length</th>
+              <th style="width: 120px;">Tone</th>
+              <th>Preview</th>
+            </tr>
+          </thead>
+          <tbody id="cutsTbody">
+            <tr class="row--empty">
+              <td colspan="5">아직 컷이 없습니다. 먼저 Split to Cuts를 실행하세요.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ④ Export -->
+    <section class="card">
+      <h2 class="card__title">④ Export</h2>
+      <p class="card__desc">
+        생성된 결과물을 다운로드해서 로컬 자동화 파이프라인으로 넘깁니다.
+      </p>
+
+      <div class="exports">
+        <button id="btnDownloadCuts" class="btn" disabled>Download cuts.json</button>
+        <button id="btnDownloadTTS" class="btn" disabled>Download EdgeTTS text</button>
+        <button id="btnDownloadPrompts" class="btn" disabled>Download image prompts</button>
+      </div>
+
+      <div class="muted">
+        ※ 대시보드는 “지휘실”입니다. SD/ffmpeg/EdgeTTS는 로컬에서 수행합니다.
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>History Inside Studio v1</span>
+      <span class="footer__sep">·</span>
+      <span>Manual Upload, Automated Production</span>
+    </footer>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

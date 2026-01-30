@@ -4,7 +4,7 @@ from pathlib import Path
 
 BASE = Path(__file__).parent
 AUDIO = BASE / "audio"
-OUT = BASE / "srt"
+OUT = BASE / "timing"
 OUT.mkdir(exist_ok=True)
 
 with open(BASE / "cuts_tts.json", encoding="utf-8") as f:
@@ -12,21 +12,30 @@ with open(BASE / "cuts_tts.json", encoding="utf-8") as f:
 
 cuts = data.get("processed") or data.get("cuts") or data
 
-def wav_duration(path):
+def duration(path):
     with wave.open(str(path)) as w:
         return w.getnframes() / w.getframerate()
+
+timeline = []
+current = 0.0
 
 for cut in cuts:
     cid = f"CUT{int(cut['id']):02d}"
     wav = AUDIO / f"{cid}.wav"
-    duration = wav_duration(wav)
+    dur = duration(wav)
 
-    text = cut["tts_text"]
-    srt = f"""1
-00:00:00,000 --> 00:00:{int(duration):02d},{int((duration%1)*1000):03d}
-{text}
-"""
+    timeline.append({
+        "id": cid,
+        "start": round(current, 2),
+        "end": round(current + dur, 2),
+        "duration": round(dur, 2)
+    })
 
-    (OUT / f"{cid}.srt").write_text(srt, encoding="utf-8")
+    current += dur
 
-print("✅ SRT 생성 완료")
+(OUT / "cuts_timing.json").write_text(
+    json.dumps(timeline, indent=2),
+    encoding="utf-8"
+)
+
+print("✅ 컷 타이밍 분석 완료")
