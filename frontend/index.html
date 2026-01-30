@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>History Inside Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <h1>History Inside</h1>
+
+  <textarea id="script" placeholder="대본을 입력하세요"></textarea>
+
+  <button onclick="splitCuts()">컷 분할</button>
+  <button onclick="generateSSML()">SSML 생성</button>
+  <button onclick="generatePrompts()">이미지 프롬프트</button>
+
+  <pre id="output"></pre>
+
+  <script src="app.js"></script>
+</body>
+</html>
