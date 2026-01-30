@@ -1,28 +1,10 @@
-const API = "https://your-worker.yourname.workers.dev";
+const API_URL = "https://history-inside-api.danielyoon.workers.dev";
 
-async function splitCuts() {
-  const script = document.getElementById("script").value;
-  const res = await fetch(`${API}/split`, {
-    method: "POST",
-    body: JSON.stringify({ script }),
-  });
-  document.getElementById("output").textContent = await res.text();
-}
+document.querySelector("#testBtn").addEventListener("click", async () => {
+  const res = await fetch(API_URL);
+  const data = await res.json();
+  console.log(data);
 
-async function generateSSML() {
-  const text = document.getElementById("script").value;
-  const res = await fetch(`${API}/ssml`, {
-    method: "POST",
-    body: JSON.stringify({ text }),
-  });
-  document.getElementById("output").textContent = await res.text();
-}
-
-async function generatePrompts() {
-  const text = document.getElementById("script").value;
-  const res = await fetch(`${API}/prompt`, {
-    method: "POST",
-    body: JSON.stringify({ text }),
-  });
-  document.getElementById("output").textContent = await res.text();
-}
+  document.querySelector("#output").textContent =
+    JSON.stringify(data, null, 2);
+});

@@ -1,10 +1,7 @@
-export function makeImagePrompt(scene) {
-  return `
-${scene},
-allegorical historical scene,
-18th century copperplate engraving style,
-monochrome black ink illustration,
-fine linework, cross-hatching,
-no color, no modern elements
-`.trim();
+export function makeEngravingPrompt(cut) {
+  return {
+    id: cut.id,
+    prompt: "18th century monochrome copperplate engraving, historical scene",
+    negative_prompt: "modern, color, photo"
+  };
 }

@@ -1,6 +1,18 @@
-.env
-node_modules
-__pycache__
-*.mp4
+# generated contents
+automation/audio/
+automation/images/
+automation/video/
+automation/prompts/
+
+# media files
 *.wav
-output/
+*.mp4
+*.png
+
+# python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
