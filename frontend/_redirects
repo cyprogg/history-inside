@@ -1,0 +1,5 @@
+/audio/* /audio/:splat 200
+/srt/* /srt/:splat 200
+/prompts/* /prompts/:splat 200
+/thumbnails/* /thumbnails/:splat 200
+/* /index.html 200
