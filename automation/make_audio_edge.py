@@ -1,33 +1,43 @@
+from pathlib import Path
 import json
 import subprocess
-from pathlib import Path
+import sys
 
-BASE_DIR = Path(__file__).parent
-INPUT_JSON = BASE_DIR / "cuts_tts.json"
-OUT_DIR = BASE_DIR / "audio"
+BASE = Path(__file__).resolve().parent
+OUT_DIR = BASE / "output" / "audio"
+OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-OUT_DIR.mkdir(exist_ok=True)
+INPUT_JSON = BASE / "cuts_tts.json"
 
+# ---------- load ----------
 with open(INPUT_JSON, encoding="utf-8") as f:
     data = json.load(f)
 
-cuts = data.get("processed") or data.get("cuts") or data
+if "processed" not in data or not isinstance(data["processed"], list):
+    print("❌ cuts_tts.json에 'processed' 리스트가 없습니다.")
+    sys.exit(1)
 
+cuts = data["processed"]
+
+if not cuts:
+    print("❌ 처리할 컷이 없습니다.")
+    sys.exit(1)
+
+# ---------- generate audio ----------
 for cut in cuts:
-    cut_id = f"CUT{int(cut['id']):02d}"
-    text = cut["tts_text"]
+    cid = cut.get("id")
+    text = cut.get("tts_text")
 
-    wav_path = OUT_DIR / f"{cut_id}.wav"
+    if cid is None or not text:
+        print("⏭ id 또는 tts_text 없음, 스킵")
+        continue
 
-    cmd = [
+    out_wav = OUT_DIR / f"CUT{int(cid):02}.wav"
+    print(f"🎧 Generating {out_wav.name}")
+
+    subprocess.run([
         "edge-tts",
         "--voice", "ko-KR-InJoonNeural",
-        "--rate", "+0%",
-        "--volume", "+0%",
         "--text", text,
-        "--write-media", str(wav_path)
-    ]
-
-    subprocess.run(cmd, check=True)
-
-print("✅ EdgeTTS 음성 생성 완료")
+        "--write-media", str(out_wav)
+    ])
